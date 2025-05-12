@@ -17,12 +17,12 @@ export const store = mutation({
       .unique();
     if (user !== null) {
       if (user.name !== identity.name) {
-        await ctx.db.patch(user._id, { name: identity.name });
+        await ctx.db.patch(user._id, { name: identity.name ?? "User1" });
       }
       return user._id;
     }
     return await ctx.db.insert("users", {
-      name: identity.name ?? "Anonymous",
+      name: identity.name ?? identity.email,
       tokenIdentifier: identity.tokenIdentifier,
       email: identity.email,
       imageUrl: identity.imageUrl,
@@ -33,17 +33,14 @@ export const store = mutation({
 export const getCurrentUser = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    // if (!identity) {
-    //   throw new Error("Not authenticated");
-    // }
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_token", (q) =>
-        q.eq(
-          "tokenIdentifier",
-          "https://fresh-hog-97.clerk.accounts.dev|user_2wkX0h2SGToDfxP5Gr6vkKhRObD"
-        )
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .first();
 
